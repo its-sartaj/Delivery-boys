@@ -113,13 +113,14 @@ window.onYouTubeIframeAPIReady = function() {
     width: '100%',
     playerVars: { 
       autoplay: 0, 
-      controls: 1, 
-      disablekb: 0, 
+      controls: 0, 
+      disablekb: 1, 
       fs: 0, 
       modestbranding: 1,
       rel: 0,
       enablejsapi: 1,
-      playsinline: 1
+      playsinline: 1,
+      origin: window.location.origin
     },
     events: { 
       onReady: function(event) {
@@ -240,14 +241,44 @@ class SongDoublyLinkedList {
   let chaiInterval = null;
 
   // Background Audio Keep-Alive for Mobile Phone Background Playback
-  let bgAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-  bgAudio.loop = true;
+  // Uses a real Audio element that browsers won't kill when screen locks
+  let bgAudio = null;
+
+  function createBgAudio() {
+    if (bgAudio) return;
+    bgAudio = new Audio();
+    bgAudio.loop = true;
+    bgAudio.volume = 0.01; // Near-silent but not zero (zero = paused by browser)
+    // 1-second silent WAV (longer than the tiny 0-sample one, keeps audio session alive)
+    bgAudio.src = 'data:audio/wav;base64,UklGRiQBAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
+  }
 
   function enableMobileBackgroundAudio() {
+    createBgAudio();
     if (bgAudio) {
       bgAudio.play().catch(e => {});
     }
   }
+
+  // Resume playback when tab becomes visible again (fixes mobile background return)
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      // Re-sync UI with actual player state
+      if (player && typeof player.getPlayerState === 'function') {
+        try {
+          const state = player.getPlayerState();
+          if (state === YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            startProgressBar();
+          } else {
+            isPlaying = false;
+            stopProgressBar();
+          }
+          updatePlayPauseUI();
+        } catch(e) {}
+      }
+    }
+  });
 
   function updateMediaSession(song) {
     if ('mediaSession' in navigator && song) {
@@ -266,6 +297,8 @@ class SongDoublyLinkedList {
         navigator.mediaSession.setActionHandler('pause', () => { togglePlayPause(); });
         navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
         navigator.mediaSession.setActionHandler('nexttrack', () => { playNext(); });
+        navigator.mediaSession.setActionHandler('seekbackward', null);
+        navigator.mediaSession.setActionHandler('seekforward', null);
       } catch(e) {}
     }
   }
@@ -419,12 +452,15 @@ class SongDoublyLinkedList {
   let isSongActive = false; // Set to true ONLY when PLAYING event actually fires
   let isLoadingTrack = false;
   let errorTimer = null;
+  let consecutiveErrors = 0;
+  const MAX_ERROR_SKIPS = 5;
 
   window.onPlayerStateChange = function(event) {
     if (event.data == YT.PlayerState.PLAYING) {
       isPlaying = true;
       isLoadingTrack = false;
       isSongActive = true;
+      consecutiveErrors = 0; // Song is actually playing — reset error counter
       if (errorTimer) {
         clearTimeout(errorTimer);
         errorTimer = null;
@@ -472,13 +508,18 @@ class SongDoublyLinkedList {
     console.warn('YouTube Player Error code:', event.data);
     if (errorTimer) clearTimeout(errorTimer);
     
-    // If a track encounters an embed error, safely advance to next track after a debounce
-    errorTimer = setTimeout(() => {
-      if (!isPlaying) {
-        console.log('Skipping unplayable track to next song...');
-        playNext(true);
-      }
-    }, 1500);
+    // Only auto-skip if we haven't hit too many consecutive errors
+    if (consecutiveErrors < MAX_ERROR_SKIPS) {
+      errorTimer = setTimeout(() => {
+        if (!isPlaying) {
+          consecutiveErrors++;
+          console.log(`Skipping unplayable track (${consecutiveErrors}/${MAX_ERROR_SKIPS})...`);
+          playNext(true);
+        }
+      }, 1500);
+    } else {
+      console.warn('Too many consecutive errors — stopping auto-skip to prevent cascade');
+    }
   };
 
   // === PLAYER FUNCTIONS ===
@@ -537,13 +578,14 @@ class SongDoublyLinkedList {
       const state = typeof player.getPlayerState === 'function' ? player.getPlayerState() : -1;
       if (state === YT.PlayerState.PLAYING) {
         player.pauseVideo();
-      } else if (state === YT.PlayerState.PAUSED) {
+      } else if (state === YT.PlayerState.PAUSED || state === 5 /* CUED */) {
         player.playVideo();
+      } else if (state === YT.PlayerState.BUFFERING) {
+        // Don't interrupt buffering — let it finish
+        return;
       } else {
-        const song = playlist[currentSongIndex];
-        if (song && typeof player.loadVideoById === 'function') {
-          player.loadVideoById(song.youtubeId);
-        }
+        // UNSTARTED (-1) or unknown state — load the current song
+        loadSong(currentSongIndex, true);
       }
     } catch(err) {
       console.error(err);
@@ -696,7 +738,7 @@ class SongDoublyLinkedList {
   function startProgressBar() {
     stopProgressBar();
     updateProgressBar();
-    progressInterval = setInterval(updateProgressBar, 250);
+    progressInterval = setInterval(updateProgressBar, 500);
   }
 
   function stopProgressBar() {
@@ -943,7 +985,7 @@ class SongDoublyLinkedList {
     document.getElementById('receipt-from-name').textContent = restaurant;
     document.getElementById('receipt-to-address').textContent = address;
     document.getElementById('receipt-rider-name').textContent = rider;
-    document.getElementById('receipt-eta').textContent = eta;
+    document.getElementById('receipt-eta').textContent = `${eta} min`;
     
     const itemsCount = Math.floor(Math.random() * 3) + 2;
     const itemsContainer = document.getElementById('receipt-items');
@@ -1019,6 +1061,7 @@ class SongDoublyLinkedList {
 
   // === STATS ===
   function startStatsSimulator() {
+    if (statsInterval) clearInterval(statsInterval);
     statsInterval = setInterval(() => {
       // random chance to get an order
       if (Math.random() > 0.5) {
