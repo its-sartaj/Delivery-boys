@@ -113,14 +113,13 @@ window.onYouTubeIframeAPIReady = function() {
     width: '100%',
     playerVars: { 
       autoplay: 0, 
-      controls: 0, 
-      disablekb: 1, 
+      controls: 1, 
+      disablekb: 0, 
       fs: 0, 
       modestbranding: 1,
       rel: 0,
       enablejsapi: 1,
-      playsinline: 1,
-      origin: window.location.origin
+      playsinline: 1
     },
     events: { 
       onReady: function(event) {
@@ -465,6 +464,10 @@ class SongDoublyLinkedList {
         clearTimeout(errorTimer);
         errorTimer = null;
       }
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+        loadTimeout = null;
+      }
       if (songStartTime === 0) {
         songStartTime = Date.now();
       }
@@ -523,6 +526,8 @@ class SongDoublyLinkedList {
   };
 
   // === PLAYER FUNCTIONS ===
+  let loadTimeout = null;
+
   function loadSong(index, play = false) {
     const song = playlist[index];
     if (!song) return;
@@ -534,6 +539,10 @@ class SongDoublyLinkedList {
     if (errorTimer) {
       clearTimeout(errorTimer);
       errorTimer = null;
+    }
+    if (loadTimeout) {
+      clearTimeout(loadTimeout);
+      loadTimeout = null;
     }
     songList.setCurrentByIndex(index);
 
@@ -557,6 +566,15 @@ class SongDoublyLinkedList {
         }
         isPlaying = true;
         updatePlayPauseUI();
+
+        // Safety net: if song doesn't start playing within 8s, skip it
+        loadTimeout = setTimeout(() => {
+          if (isLoadingTrack && !isSongActive && consecutiveErrors < MAX_ERROR_SKIPS) {
+            console.warn('Song load timed out, skipping...');
+            consecutiveErrors++;
+            playNext(true);
+          }
+        }, 8000);
       } else {
         try {
           player.cueVideoById(song.youtubeId);
