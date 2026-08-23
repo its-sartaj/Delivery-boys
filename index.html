@@ -172,7 +172,9 @@
 
           <!-- Spinning Disc / Album Art -->
           <div class="player-disc-wrapper">
-            <audio id="main-audio" preload="auto"></audio>
+            <div id="youtube-container" class="youtube-container">
+              <div id="youtube-player"></div>
+            </div>
             <div id="player-disc" class="player-disc">
               <div class="disc-inner">
                 <div class="disc-label">🎵</div>
@@ -237,13 +239,7 @@
         <!-- Playlist Panel -->
         <div id="playlist-panel" class="playlist-panel hidden">
           <div class="playlist-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <h3 class="playlist-title font-baloo" style="margin: 0;">🎧 Rider's Playlist</h3>
-              <label for="mp3-file-input" class="btn-upload-mp3" style="cursor: pointer; background: var(--accent, #ff5722); color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                <span>📁 Add My MP3s</span>
-              </label>
-              <input type="file" id="mp3-file-input" accept="audio/*" multiple style="display: none;">
-            </div>
+            <h3 class="playlist-title font-baloo">🎧 Rider's Playlist</h3>
             <div class="playlist-search-wrapper">
               <input type="text" id="playlist-search" class="playlist-search" placeholder="Search songs..." aria-label="Search songs">
             </div>

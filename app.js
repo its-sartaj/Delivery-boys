@@ -101,7 +101,41 @@ class SoundEngine {
   }
 }
 
+// Global player variable accessible to YouTube API
+let player = null;
+let isPlayerReady = false;
 const soundEngine = new SoundEngine();
+
+// Global callback for YouTube API
+window.onYouTubeIframeAPIReady = function() {
+  player = new YT.Player('youtube-player', {
+    height: '100%', 
+    width: '100%',
+    playerVars: { 
+      autoplay: 0, 
+      controls: 1, 
+      disablekb: 0, 
+      fs: 0, 
+      modestbranding: 1,
+      rel: 0,
+      enablejsapi: 1,
+      playsinline: 1,
+      iv_load_policy: 3
+    },
+    events: { 
+      onReady: function(event) {
+        isPlayerReady = true;
+        if (window.onPlayerReady) window.onPlayerReady(event);
+      }, 
+      onStateChange: function(event) {
+        if (window.onPlayerStateChange) window.onPlayerStateChange(event);
+      },
+      onError: function(event) {
+        if (window.onPlayerError) window.onPlayerError(event);
+      }
+    }
+  });
+};
 
 // ==========================================
 // DOUBLY LINKED LIST DATA STRUCTURE
@@ -201,67 +235,50 @@ class SongDoublyLinkedList {
   let isRepeating = false;
   let shuffledIndices = [];
   let playlist = [];
-  const songList = new SongDoublyLinkedList();
+  const songList = new SongDoublyLinkedList(); // Doubly Linked List instance
   let isMuted = false;
   let statsInterval = null;
   let chaiInterval = null;
-  let lastSwitchTime = 0;
 
-  // Native HTML5 Audio Element (Zero Ads, Fast, Background Play)
-  let audio = null;
+  // Background Audio Keep-Alive for Mobile Phone Background Playback
+  // Uses a real Audio element that browsers won't kill when screen locks
+  let bgAudio = null;
 
-  function initAudio() {
-    audio = document.getElementById('main-audio');
-    if (!audio) {
-      audio = new Audio();
-      audio.id = 'main-audio';
-      document.body.appendChild(audio);
-    }
-    
-    audio.volume = 0.7;
-
-    audio.addEventListener('play', () => {
-      isPlaying = true;
-      updatePlayPauseUI();
-      if ('mediaSession' in navigator) {
-        try { navigator.mediaSession.playbackState = 'playing'; } catch(e) {}
-      }
-    });
-
-    audio.addEventListener('pause', () => {
-      isPlaying = false;
-      updatePlayPauseUI();
-      if ('mediaSession' in navigator) {
-        try { navigator.mediaSession.playbackState = 'paused'; } catch(e) {}
-      }
-    });
-
-    audio.addEventListener('timeupdate', () => {
-      updateProgressBar();
-    });
-
-    audio.addEventListener('loadedmetadata', () => {
-      if (audio.duration && !isNaN(audio.duration)) {
-        document.getElementById('total-time').textContent = formatTime(audio.duration);
-      }
-    });
-
-    audio.addEventListener('ended', () => {
-      if (isRepeating) {
-        audio.currentTime = 0;
-        audio.play().catch(e => console.warn(e));
-      } else {
-        playNext();
-      }
-    });
-
-    audio.addEventListener('error', (e) => {
-      console.warn('Audio stream error, safely advancing...', e);
-      setTimeout(() => {
-        if (!isPlaying) playNext(true);
-      }, 1000);
-    });
+  function createBgAudio() {
+    if (bgAudio) return;
+    bgAudio = new Audio();
+    bgAudio.loop = true;
+    bgAudio.volume = 0.01; // Near-silent but not zero (zero = paused by browser)
+    // 1-second silent WAV (longer than the tiny 0-sample one, keeps audio session alive)
+    bgAudio.src = 'data:audio/wav;base64,UklGRiQBAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
   }
+
+  function enableMobileBackgroundAudio() {
+    createBgAudio();
+    if (bgAudio) {
+      bgAudio.play().catch(e => {});
+    }
+  }
+
+  // Resume playback when tab becomes visible again (fixes mobile background return)
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      // Re-sync UI with actual player state
+      if (player && typeof player.getPlayerState === 'function') {
+        try {
+          const state = player.getPlayerState();
+          if (state === YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            startProgressBar();
+          } else {
+            isPlaying = false;
+            stopProgressBar();
+          }
+          updatePlayPauseUI();
+        } catch(e) {}
+      }
+    }
+  });
 
   function updateMediaSession(song) {
     if ('mediaSession' in navigator && song) {
@@ -280,11 +297,8 @@ class SongDoublyLinkedList {
         navigator.mediaSession.setActionHandler('pause', () => { togglePlayPause(); });
         navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
         navigator.mediaSession.setActionHandler('nexttrack', () => { playNext(); });
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-          if (details.seekTime !== undefined && audio) {
-            audio.currentTime = details.seekTime;
-          }
-        });
+        navigator.mediaSession.setActionHandler('seekbackward', null);
+        navigator.mediaSession.setActionHandler('seekforward', null);
       } catch(e) {}
     }
   }
@@ -302,14 +316,13 @@ class SongDoublyLinkedList {
 
   // === INIT ===
   function init() {
-    playlist = [...SONGS];
-    songList.buildFromArray(playlist, playlist);
-    initAudio();
+    playlist = [...SONGS]; // from songs.js (global const)
+    songList.buildFromArray(playlist, playlist); // Initialize Doubly Linked List
     initPlaylistUI();
     attachEventListeners();
     registerPWA();
     updateStatsUI();
-    loadSong(0, false);
+    loadYouTubeAPI();
   }
   
   function attachEventListeners() {
@@ -361,12 +374,6 @@ class SongDoublyLinkedList {
       btn.addEventListener('click', handleCategoryFilter);
     });
 
-    // Custom MP3 Upload Listener
-    const mp3Input = document.getElementById('mp3-file-input');
-    if (mp3Input) {
-      mp3Input.addEventListener('change', handleCustomMp3Upload);
-    }
-
     // Action Buttons
     document.getElementById('btn-horn').addEventListener('click', triggerHorn);
     document.getElementById('btn-notification').addEventListener('click', triggerNotification);
@@ -387,7 +394,12 @@ class SongDoublyLinkedList {
     document.addEventListener('keydown', handleKeyboardShortcuts);
   }
 
+  let pendingAutoPlay = false;
+
   function startRide() {
+    enableMobileBackgroundAudio();
+    pendingAutoPlay = true;
+    
     const hero = document.getElementById('hero-section');
     const mainApp = document.getElementById('main-app');
     
@@ -407,18 +419,135 @@ class SongDoublyLinkedList {
       startStatsSimulator();
     } catch(e) {}
 
-    loadSong(currentSongIndex, true);
+    if (isPlayerReady && player && typeof player.loadVideoById === 'function') {
+      loadSong(currentSongIndex, true);
+    }
   }
 
+  function loadYouTubeAPI() {
+    if (window.YT && window.YT.Player) {
+      if (typeof window.onYouTubeIframeAPIReady === 'function') {
+        window.onYouTubeIframeAPIReady();
+      }
+      return;
+    }
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  }
+
+  window.onPlayerReady = function(event) {
+    isPlayerReady = true;
+    if (playlist.length > 0) {
+      loadSong(currentSongIndex, pendingAutoPlay);
+    }
+    const volSlider = document.getElementById('volume-slider');
+    if (volSlider && event.target.setVolume) {
+      event.target.setVolume(volSlider.value);
+    }
+  };
+
+  let lastSwitchTime = 0;
+  let songStartTime = 0;
+  let isSongActive = false; // Set to true ONLY when PLAYING event actually fires
+  let isLoadingTrack = false;
+  let errorTimer = null;
+  let consecutiveErrors = 0;
+  const MAX_ERROR_SKIPS = 5;
+
+  window.onPlayerStateChange = function(event) {
+    if (event.data == YT.PlayerState.PLAYING) {
+      isPlaying = true;
+      isLoadingTrack = false;
+      isSongActive = true;
+      consecutiveErrors = 0; // Song is actually playing — reset error counter
+      if (errorTimer) {
+        clearTimeout(errorTimer);
+        errorTimer = null;
+      }
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+        loadTimeout = null;
+      }
+      if (songStartTime === 0) {
+        songStartTime = Date.now();
+      }
+      updatePlayPauseUI();
+      startProgressBar();
+      enableMobileBackgroundAudio();
+      if ('mediaSession' in navigator) {
+        try { navigator.mediaSession.playbackState = 'playing'; } catch(e) {}
+      }
+    } else if (event.data == YT.PlayerState.PAUSED) {
+      isPlaying = false;
+      updatePlayPauseUI();
+      stopProgressBar();
+      if ('mediaSession' in navigator) {
+        try { navigator.mediaSession.playbackState = 'paused'; } catch(e) {}
+      }
+    } else if (event.data == YT.PlayerState.ENDED) {
+      isPlaying = false;
+      updatePlayPauseUI();
+      stopProgressBar();
+      
+      // CRITICAL CASCADE PREVENTION:
+      // Only auto-play the next song if this track was ACTUALLY playing and completed.
+      // If isLoadingTrack is true or isSongActive is false, this is just an unload artifact from previous video!
+      if (isSongActive && !isLoadingTrack) {
+        isSongActive = false;
+        if (isRepeating) {
+          songStartTime = 0;
+          if (player && typeof player.seekTo === 'function') {
+            player.seekTo(0);
+            player.playVideo();
+          }
+        } else {
+          playNext();
+        }
+      }
+    }
+  };
+
+  window.onPlayerError = function(event) {
+    console.warn('YouTube Player Error code:', event.data);
+    if (errorTimer) clearTimeout(errorTimer);
+    
+    // Only auto-skip if we haven't hit too many consecutive errors
+    if (consecutiveErrors < MAX_ERROR_SKIPS) {
+      errorTimer = setTimeout(() => {
+        if (!isPlaying) {
+          consecutiveErrors++;
+          console.log(`Skipping unplayable track (${consecutiveErrors}/${MAX_ERROR_SKIPS})...`);
+          playNext(true);
+        }
+      }, 1500);
+    } else {
+      console.warn('Too many consecutive errors — stopping auto-skip to prevent cascade');
+    }
+  };
+
   // === PLAYER FUNCTIONS ===
+  let loadTimeout = null;
+
   function loadSong(index, play = false) {
     const song = playlist[index];
     if (!song) return;
 
     currentSongIndex = index;
+    songStartTime = 0;
+    isSongActive = false;
+    isLoadingTrack = true;
+    if (errorTimer) {
+      clearTimeout(errorTimer);
+      errorTimer = null;
+    }
+    if (loadTimeout) {
+      clearTimeout(loadTimeout);
+      loadTimeout = null;
+    }
     songList.setCurrentByIndex(index);
 
-    // Instant UI Update (0ms latency)
+    // Instant UI Update (0ms latency feedback)
     document.getElementById('song-title').textContent = song.title;
     document.getElementById('song-artist').textContent = song.artist;
     document.getElementById('song-movie').textContent = `${song.movie} (${song.year})`;
@@ -429,39 +558,56 @@ class SongDoublyLinkedList {
     updatePlaylistActiveItem();
     updateMediaSession(song);
 
-    if (audio) {
-      if (song.audioUrl) {
-        audio.src = song.audioUrl;
-        if (play) {
-          audio.play().then(() => {
-            isPlaying = true;
-            updatePlayPauseUI();
-          }).catch(err => {
-            console.warn('Playback gesture required or stream error:', err);
-          });
+    if (player && typeof player.loadVideoById === 'function') {
+      if (play) {
+        try {
+          player.loadVideoById(song.youtubeId);
+        } catch(e) {
+          try { player.loadVideoById({ videoId: song.youtubeId }); } catch(err) {}
+        }
+        isPlaying = true;
+        updatePlayPauseUI();
+
+        // Safety net: if song doesn't start playing within 8s, skip it
+        loadTimeout = setTimeout(() => {
+          if (isLoadingTrack && !isSongActive && consecutiveErrors < MAX_ERROR_SKIPS) {
+            console.warn('Song load timed out, skipping...');
+            consecutiveErrors++;
+            playNext(true);
+          }
+        }, 8000);
+      } else {
+        try {
+          player.cueVideoById(song.youtubeId);
+        } catch(e) {
+          try { player.cueVideoById({ videoId: song.youtubeId }); } catch(err) {}
         }
       }
     }
   }
 
   function togglePlayPause() {
-    if (!audio) return;
+    enableMobileBackgroundAudio();
+    if (!player) {
+      console.warn('Player not initialized yet');
+      return;
+    }
     
-    if (audio.paused) {
-      if (!audio.src && playlist[currentSongIndex]) {
-        loadSong(currentSongIndex, true);
+    try {
+      const state = typeof player.getPlayerState === 'function' ? player.getPlayerState() : -1;
+      if (state === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+      } else if (state === YT.PlayerState.PAUSED || state === 5 /* CUED */) {
+        player.playVideo();
+      } else if (state === YT.PlayerState.BUFFERING) {
+        // Don't interrupt buffering — let it finish
+        return;
       } else {
-        audio.play().then(() => {
-          isPlaying = true;
-          updatePlayPauseUI();
-        }).catch(err => {
-          console.warn(err);
-        });
+        // UNSTARTED (-1) or unknown state — load the current song
+        loadSong(currentSongIndex, true);
       }
-    } else {
-      audio.pause();
-      isPlaying = false;
-      updatePlayPauseUI();
+    } catch(err) {
+      console.error(err);
     }
   }
 
@@ -485,7 +631,7 @@ class SongDoublyLinkedList {
     if (playlist.length === 0) return;
     
     const now = Date.now();
-    if (!isErrorSkip && (now - lastSwitchTime < 300)) {
+    if (!isErrorSkip && (now - lastSwitchTime < 800)) {
       return;
     }
     lastSwitchTime = now;
@@ -496,6 +642,7 @@ class SongDoublyLinkedList {
       nextIndex = shuffledIndices[(currentShuffleIdx + 1) % shuffledIndices.length];
       songList.setCurrentByIndex(nextIndex);
     } else {
+      // Traverse forward using Doubly Linked List (O(1))
       const nextNode = songList.getNextNode();
       nextIndex = nextNode ? nextNode.index : (currentSongIndex + 1) % playlist.length;
     }
@@ -506,7 +653,7 @@ class SongDoublyLinkedList {
     if (playlist.length === 0) return;
 
     const now = Date.now();
-    if (now - lastSwitchTime < 300) {
+    if (now - lastSwitchTime < 800) {
       return;
     }
     lastSwitchTime = now;
@@ -517,6 +664,7 @@ class SongDoublyLinkedList {
       prevIndex = shuffledIndices[(currentShuffleIdx - 1 + shuffledIndices.length) % shuffledIndices.length];
       songList.setCurrentByIndex(prevIndex);
     } else {
+      // Traverse backward using Doubly Linked List (O(1))
       const prevNode = songList.getPrevNode();
       prevIndex = prevNode ? prevNode.index : (currentSongIndex - 1 + playlist.length) % playlist.length;
     }
@@ -528,7 +676,9 @@ class SongDoublyLinkedList {
     const btn = document.getElementById('btn-shuffle');
     if (isShuffled) {
       btn.classList.add('active');
+      // Create shuffled indices
       shuffledIndices = Array.from({length: playlist.length}, (_, i) => i);
+      // Fisher-Yates shuffle
       for (let i = shuffledIndices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
@@ -549,55 +699,78 @@ class SongDoublyLinkedList {
   }
 
   function toggleMute() {
-    if (!audio) return;
+    if (!player) return;
     isMuted = !isMuted;
-    audio.muted = isMuted;
     const volIcon = document.getElementById('icon-volume');
     const muteIcon = document.getElementById('icon-mute');
     
     if (isMuted) {
+      player.mute();
       volIcon.classList.add('hidden');
       muteIcon.classList.remove('hidden');
     } else {
+      player.unMute();
       volIcon.classList.remove('hidden');
       muteIcon.classList.add('hidden');
     }
   }
 
   function changeVolume(e) {
-    if (!audio) return;
-    const vol = e.target.value / 100;
-    audio.volume = vol;
+    if (!player) return;
+    const vol = e.target.value;
+    player.setVolume(vol);
     if (vol > 0 && isMuted) {
       toggleMute();
     }
   }
 
   function formatTime(seconds) {
-    if (isNaN(seconds) || seconds === null || seconds === Infinity) return '0:00';
+    if (isNaN(seconds) || seconds === null) return '0:00';
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   }
 
+  let progressInterval = null;
+
   function updateProgressBar() {
-    if (!audio) return;
-    const currentTime = audio.currentTime || 0;
-    const duration = audio.duration || 0;
+    if (!player || !isPlaying) return;
     
-    document.getElementById('current-time').textContent = formatTime(currentTime);
-    if (duration > 0 && !isNaN(duration)) {
-      document.getElementById('total-time').textContent = formatTime(duration);
-      const percent = (currentTime / duration) * 100;
-      document.getElementById('progress-fill').style.width = `${percent}%`;
-      document.getElementById('progress-handle').style.left = `${percent}%`;
+    try {
+      if (typeof player.getCurrentTime === 'function') {
+        const currentTime = player.getCurrentTime() || 0;
+        const duration = (typeof player.getDuration === 'function' ? player.getDuration() : 0) || 0;
+        
+        document.getElementById('current-time').textContent = formatTime(currentTime);
+        if (duration > 0) {
+          document.getElementById('total-time').textContent = formatTime(duration);
+          const percent = (currentTime / duration) * 100;
+          document.getElementById('progress-fill').style.width = `${percent}%`;
+          document.getElementById('progress-handle').style.left = `${percent}%`;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function startProgressBar() {
+    stopProgressBar();
+    updateProgressBar();
+    progressInterval = setInterval(updateProgressBar, 500);
+  }
+
+  function stopProgressBar() {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
     }
   }
 
   function seekToPosition(e) {
-    if (!audio || !audio.duration) return;
-    const duration = audio.duration;
-    if (!duration || isNaN(duration)) return;
+    if (!player || !player.getDuration) return;
+    const duration = player.getDuration();
+    if (!duration) return;
     
     const progressBar = document.getElementById('progress-bar');
     const rect = progressBar.getBoundingClientRect();
@@ -616,35 +789,7 @@ class SongDoublyLinkedList {
     document.getElementById('progress-handle').style.left = `${percent * 100}%`;
     document.getElementById('current-time').textContent = formatTime(seekTime);
     
-    audio.currentTime = seekTime;
-  }
-
-  // === CUSTOM MP3 UPLOAD HANDLER ===
-  function handleCustomMp3Upload(e) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const newSongs = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const objectUrl = URL.createObjectURL(file);
-      const cleanName = file.name.replace(/\.[^/.]+$/, "");
-      const newSong = {
-        id: Date.now() + i,
-        title: cleanName,
-        artist: 'My Device',
-        movie: 'Local Audio',
-        year: new Date().getFullYear(),
-        audioUrl: objectUrl,
-        category: 'custom'
-      };
-      newSongs.push(newSong);
-    }
-
-    playlist = [...newSongs, ...playlist];
-    songList.buildFromArray(playlist, playlist);
-    renderPlaylist(playlist);
-    loadSong(0, true);
+    player.seekTo(seekTime, true);
   }
 
   // === PLAYLIST FUNCTIONS ===
