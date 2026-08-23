@@ -629,20 +629,8 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
 }
 
-.youtube-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 180px;
-  height: 180px;
-  opacity: 1;
-  pointer-events: none;
-  z-index: 1;
-}
-
-#youtube-player {
-  width: 100% !important;
-  height: 100% !important;
+#main-audio {
+  display: none;
 }
 
 #player-disc {

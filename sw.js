@@ -1,9 +1,9 @@
 // ============================================
-// Indian Delivery Boys — Service Worker v4
-// Fixed: Proper cache versioning, offline support
+// Indian Delivery Boys — Service Worker v5
+// Native HTML5 Audio Engine & Zero Ads
 // ============================================
 
-const CACHE_NAME = 'delivery-boys-v4';
+const CACHE_NAME = 'delivery-boys-v5';
 const STATIC_ASSETS = [
   './',
   './index.html',
