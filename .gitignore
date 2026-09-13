@@ -1,0 +1,13 @@
+# System & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Archives & Logs
+*.zip
+*.log
+
+# Scratch & Temporary
+scratch/
+.system_generated/

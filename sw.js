@@ -1,9 +1,9 @@
 // ============================================
-// Indian Delivery Boys — Service Worker v6
-// Fixed: Proper cache versioning, offline support
+// Indian Delivery Boys — Service Worker v7
+// Fixed: Genuine PNG icons, print styles, offline support
 // ============================================
 
-const CACHE_NAME = 'delivery-boys-v6';
+const CACHE_NAME = 'delivery-boys-v7';
 const STATIC_ASSETS = [
   './',
   './index.html',

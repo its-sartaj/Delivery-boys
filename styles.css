@@ -1553,13 +1553,54 @@ kbd {
 
 /* Print styles for receipt download */
 @media print {
-  body * { visibility: hidden; }
-  #receipt-card, #receipt-card * { visibility: visible; }
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #background-scene,
+  #hero-section,
+  #rider-stats,
+  #music-player,
+  #action-buttons,
+  .receipt-form,
+  #btn-download-receipt,
+  #settings-panel,
+  #shortcuts-section,
+  .app-footer,
+  #chai-break-modal {
+    display: none !important;
+  }
+
+  #main-app,
+  #receipt-section,
+  #receipt-output {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: transparent !important;
+  }
+
   #receipt-card {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 350px;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    margin: 20px auto !important;
+    max-width: 380px !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }
+
