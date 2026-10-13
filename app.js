@@ -1,3 +1,10 @@
+// 24/7 Bollywood Live Radio Streams (Instant Fallback & Live Mode)
+const RADIO_STREAMS = [
+  { name: 'Bollywood Hits HD', url: 'https://stream.zeno.fm/f3wvbbqmdg8uv' },
+  { name: 'Evergreen Classics', url: 'https://stream.zeno.fm/60ef4p33vxquv' },
+  { name: 'Desi Beat Express', url: 'https://radio.bollyhitsradio.com:8030/radio.mp3' }
+];
+
 class SoundEngine {
   constructor() {
     this.ctx = null; // lazy init AudioContext
@@ -6,135 +13,156 @@ class SoundEngine {
   }
   
   init() {
-    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    } catch(e) {}
   }
 
   playHorn() {
     this.init();
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
-    osc.connect(gain).connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.25);
-    
-    // Second honk after short pause
-    setTimeout(() => {
-      const osc2 = this.ctx.createOscillator();
-      const gain2 = this.ctx.createGain();
-      osc2.type = 'square';
-      osc2.frequency.setValueAtTime(900, this.ctx.currentTime);
-      osc2.frequency.linearRampToValueAtTime(650, this.ctx.currentTime + 0.3);
-      gain2.gain.setValueAtTime(0.3, this.ctx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
-      osc2.connect(gain2).connect(this.ctx.destination);
-      osc2.start();
-      osc2.stop(this.ctx.currentTime + 0.4);
-    }, 200);
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+      osc.connect(gain).connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.25);
+      
+      // Second honk after short pause
+      setTimeout(() => {
+        if (!this.ctx) return;
+        try {
+          const osc2 = this.ctx.createOscillator();
+          const gain2 = this.ctx.createGain();
+          osc2.type = 'square';
+          osc2.frequency.setValueAtTime(900, this.ctx.currentTime);
+          osc2.frequency.linearRampToValueAtTime(650, this.ctx.currentTime + 0.3);
+          gain2.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+          osc2.connect(gain2).connect(this.ctx.destination);
+          osc2.start();
+          osc2.stop(this.ctx.currentTime + 0.4);
+        } catch(err) {}
+      }, 200);
+    } catch(e) {}
   }
 
   playNotification() {
     this.init();
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
-    osc.connect(gain).connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.45);
-    
-    // Second ding
-    setTimeout(() => {
-      const osc2 = this.ctx.createOscillator();
-      const gain2 = this.ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1400, this.ctx.currentTime);
-      osc2.frequency.linearRampToValueAtTime(1000, this.ctx.currentTime + 0.1);
-      gain2.gain.setValueAtTime(0.3, this.ctx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-      osc2.connect(gain2).connect(this.ctx.destination);
-      osc2.start();
-      osc2.stop(this.ctx.currentTime + 0.35);
-    }, 200);
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+      osc.connect(gain).connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.45);
+      
+      // Second ding
+      setTimeout(() => {
+        if (!this.ctx) return;
+        try {
+          const osc2 = this.ctx.createOscillator();
+          const gain2 = this.ctx.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(1400, this.ctx.currentTime);
+          osc2.frequency.linearRampToValueAtTime(1000, this.ctx.currentTime + 0.1);
+          gain2.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+          osc2.connect(gain2).connect(this.ctx.destination);
+          osc2.start();
+          osc2.stop(this.ctx.currentTime + 0.35);
+        } catch(err) {}
+      }, 200);
+    } catch(e) {}
   }
 
   playEngineIdle() {
     this.init();
-    if (this.engineOsc) return; // already playing
-    
-    this.engineOsc = this.ctx.createOscillator();
-    this.engineGain = this.ctx.createGain();
-    this.engineOsc.type = 'sawtooth';
-    this.engineOsc.frequency.setValueAtTime(55, this.ctx.currentTime);
-    this.engineGain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-    
-    // Add slight frequency wobble
-    const lfo = this.ctx.createOscillator();
-    const lfoGain = this.ctx.createGain();
-    lfo.frequency.setValueAtTime(3, this.ctx.currentTime);
-    lfoGain.gain.setValueAtTime(5, this.ctx.currentTime);
-    lfo.connect(lfoGain).connect(this.engineOsc.frequency);
-    lfo.start();
-    
-    this.engineOsc.connect(this.engineGain).connect(this.ctx.destination);
-    this.engineOsc.start();
-    this.engineLfo = lfo;
+    if (!this.ctx || this.engineOsc) return;
+    try {
+      this.engineOsc = this.ctx.createOscillator();
+      this.engineGain = this.ctx.createGain();
+      this.engineOsc.type = 'sawtooth';
+      this.engineOsc.frequency.setValueAtTime(55, this.ctx.currentTime);
+      this.engineGain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+      
+      // Add slight frequency wobble
+      const lfo = this.ctx.createOscillator();
+      const lfoGain = this.ctx.createGain();
+      lfo.frequency.setValueAtTime(3, this.ctx.currentTime);
+      lfoGain.gain.setValueAtTime(5, this.ctx.currentTime);
+      lfo.connect(lfoGain).connect(this.engineOsc.frequency);
+      lfo.start();
+      
+      this.engineOsc.connect(this.engineGain).connect(this.ctx.destination);
+      this.engineOsc.start();
+      this.engineLfo = lfo;
+    } catch(e) {}
   }
 
   stopEngine() {
     if (this.engineOsc) { 
-      this.engineOsc.stop(); 
-      this.engineLfo.stop(); 
+      try { this.engineOsc.stop(); } catch(e) {}
+      try { if (this.engineLfo) this.engineLfo.stop(); } catch(e) {}
       this.engineOsc = null; 
       this.engineLfo = null;
     }
   }
 }
 
-// Global player variable accessible to YouTube API
+// Global player variables accessible to YouTube API
 let player = null;
 let isPlayerReady = false;
 const soundEngine = new SoundEngine();
 
 // Global callback for YouTube API
 window.onYouTubeIframeAPIReady = function() {
-  player = new YT.Player('youtube-player', {
-    height: '100%', 
-    width: '100%',
-    playerVars: { 
-      autoplay: 0, 
-      controls: 1, 
-      disablekb: 0, 
-      fs: 0, 
-      modestbranding: 1,
-      rel: 0,
-      enablejsapi: 1,
-      playsinline: 1,
-      iv_load_policy: 3
-    },
-    events: { 
-      onReady: function(event) {
-        isPlayerReady = true;
-        if (window.onPlayerReady) window.onPlayerReady(event);
-      }, 
-      onStateChange: function(event) {
-        if (window.onPlayerStateChange) window.onPlayerStateChange(event);
+  try {
+    player = new YT.Player('youtube-player', {
+      height: '100%', 
+      width: '100%',
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: { 
+        autoplay: 0, 
+        controls: 1, 
+        disablekb: 0, 
+        fs: 1, 
+        modestbranding: 1,
+        rel: 0,
+        enablejsapi: 1,
+        playsinline: 1,
+        origin: window.location.origin || 'https://its-sartaj.github.io',
+        widget_referrer: window.location.href
       },
-      onError: function(event) {
-        if (window.onPlayerError) window.onPlayerError(event);
+      events: { 
+        onReady: function(event) {
+          isPlayerReady = true;
+          if (window.onPlayerReady) window.onPlayerReady(event);
+        }, 
+        onStateChange: function(event) {
+          if (window.onPlayerStateChange) window.onPlayerStateChange(event);
+        },
+        onError: function(event) {
+          if (window.onPlayerError) window.onPlayerError(event);
+        }
       }
-    }
-  });
+    });
+  } catch(e) {
+    console.warn('YouTube init caught:', e);
+  }
 };
 
 // ==========================================
@@ -215,8 +243,8 @@ class SongDoublyLinkedList {
       }
       curr = curr.next;
     }
-    // Fallback: if not found, default to head
-    this.currentNode = this.head;
+    // Fallback: if not found, default to tail so getNextNode lands on head
+    this.currentNode = this.tail;
     return this.head;
   }
 
@@ -240,17 +268,24 @@ class SongDoublyLinkedList {
   let statsInterval = null;
   let chaiInterval = null;
 
+  // Mode and Radio States
+  let playMode = 'youtube'; // 'youtube' | 'radio'
+  let radioAudio = null;
+  let currentRadioIndex = 0;
+  let isVideoMode = false;
+
   // Background Audio Keep-Alive for Mobile Phone Background Playback
   // Uses a real Audio element that browsers won't kill when screen locks
   let bgAudio = null;
 
   function createBgAudio() {
     if (bgAudio) return;
-    bgAudio = new Audio();
-    bgAudio.loop = true;
-    bgAudio.volume = 0.01; // Near-silent but not zero (zero = paused by browser)
-    // 1-second silent WAV (longer than the tiny 0-sample one, keeps audio session alive)
-    bgAudio.src = 'data:audio/wav;base64,UklGRiQBAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
+    try {
+      bgAudio = new Audio();
+      bgAudio.loop = true;
+      bgAudio.volume = 0.01; // Near-silent but not zero (zero = paused by browser)
+      bgAudio.src = 'data:audio/wav;base64,UklGRiQBAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
+    } catch(e) {}
   }
 
   function enableMobileBackgroundAudio() {
@@ -263,11 +298,16 @@ class SongDoublyLinkedList {
   // Resume playback when tab becomes visible again (fixes mobile background return)
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {
-      // Re-sync UI with actual player state
+      if (playMode === 'radio' && radioAudio) {
+        isPlaying = !radioAudio.paused;
+        updatePlayPauseUI();
+        return;
+      }
+      // Re-sync UI with actual player state safely (1 = PLAYING)
       if (player && typeof player.getPlayerState === 'function') {
         try {
           const state = player.getPlayerState();
-          if (state === YT.PlayerState.PLAYING) {
+          if (state === 1 || (window.YT && window.YT.PlayerState && state === window.YT.PlayerState.PLAYING)) {
             isPlaying = true;
             startProgressBar();
           } else {
@@ -329,6 +369,14 @@ class SongDoublyLinkedList {
     // Hero Start
     document.getElementById('btn-start-ride').addEventListener('click', startRide);
     
+    // Player Top Toolbar
+    const btnModeYt = document.getElementById('btn-mode-youtube');
+    if (btnModeYt) btnModeYt.addEventListener('click', switchToYouTube);
+    const btnModeRadio = document.getElementById('btn-mode-radio');
+    if (btnModeRadio) btnModeRadio.addEventListener('click', () => switchToRadio(0));
+    const btnToggleVid = document.getElementById('btn-toggle-video');
+    if (btnToggleVid) btnToggleVid.addEventListener('click', toggleVideoMode);
+
     // Player Controls
     document.getElementById('btn-play').addEventListener('click', togglePlayPause);
     document.getElementById('btn-prev').addEventListener('click', () => playPrev());
@@ -456,11 +504,13 @@ class SongDoublyLinkedList {
   const MAX_ERROR_SKIPS = 5;
 
   window.onPlayerStateChange = function(event) {
-    if (event.data == YT.PlayerState.PLAYING) {
+    const state = event ? event.data : -1;
+    // 1 = PLAYING, 2 = PAUSED, 0 = ENDED
+    if (state === 1 || (window.YT && window.YT.PlayerState && state === window.YT.PlayerState.PLAYING)) {
       isPlaying = true;
       isLoadingTrack = false;
       isSongActive = true;
-      consecutiveErrors = 0; // Song is actually playing — reset error counter
+      consecutiveErrors = 0; // Song is playing, reset error counter
       if (errorTimer) {
         clearTimeout(errorTimer);
         errorTimer = null;
@@ -478,21 +528,19 @@ class SongDoublyLinkedList {
       if ('mediaSession' in navigator) {
         try { navigator.mediaSession.playbackState = 'playing'; } catch(e) {}
       }
-    } else if (event.data == YT.PlayerState.PAUSED) {
+    } else if (state === 2 || (window.YT && window.YT.PlayerState && state === window.YT.PlayerState.PAUSED)) {
       isPlaying = false;
       updatePlayPauseUI();
       stopProgressBar();
       if ('mediaSession' in navigator) {
         try { navigator.mediaSession.playbackState = 'paused'; } catch(e) {}
       }
-    } else if (event.data == YT.PlayerState.ENDED) {
+    } else if (state === 0 || (window.YT && window.YT.PlayerState && state === window.YT.PlayerState.ENDED)) {
       isPlaying = false;
       updatePlayPauseUI();
       stopProgressBar();
       
-      // CRITICAL CASCADE PREVENTION:
-      // Only auto-play the next song if this track was ACTUALLY playing and completed.
-      // If isLoadingTrack is true or isSongActive is false, this is just an unload artifact from previous video!
+      // Cascade prevention: only advance if the song was actually active
       if (isSongActive && !isLoadingTrack) {
         isSongActive = false;
         if (isRepeating) {
@@ -509,25 +557,119 @@ class SongDoublyLinkedList {
   };
 
   window.onPlayerError = function(event) {
-    console.warn('YouTube Player Error code:', event.data);
+    const errCode = event ? event.data : -1;
+    console.warn('YouTube Player Error code:', errCode);
     if (errorTimer) clearTimeout(errorTimer);
+    if (loadTimeout) {
+      clearTimeout(loadTimeout);
+      loadTimeout = null;
+    }
+    isLoadingTrack = false;
+    isSongActive = false;
     
-    // Only auto-skip if we haven't hit too many consecutive errors
+    // Auto-skip unplayable song cleanly
     if (consecutiveErrors < MAX_ERROR_SKIPS) {
+      consecutiveErrors++;
+      console.log(`Auto-skipping restricted track (${consecutiveErrors}/${MAX_ERROR_SKIPS})...`);
       errorTimer = setTimeout(() => {
-        if (!isPlaying) {
-          consecutiveErrors++;
-          console.log(`Skipping unplayable track (${consecutiveErrors}/${MAX_ERROR_SKIPS})...`);
-          playNext(true);
-        }
-      }, 1500);
+        playNext(true);
+      }, 600);
     } else {
-      console.warn('Too many consecutive errors — stopping auto-skip to prevent cascade');
+      console.warn('Multiple tracks restricted — switching to 24/7 Live Radio stream');
+      consecutiveErrors = 0;
+      switchToRadio(0);
     }
   };
 
   // === PLAYER FUNCTIONS ===
   let loadTimeout = null;
+
+  function updateWatchLink(song) {
+    const link = document.getElementById('link-youtube-watch');
+    if (link && song && song.youtubeId) {
+      link.href = `https://www.youtube.com/watch?v=${song.youtubeId}`;
+    }
+  }
+
+  function toggleVideoMode() {
+    isVideoMode = !isVideoMode;
+    const wrapper = document.getElementById('player-disc-wrapper');
+    const label = document.getElementById('label-toggle-video');
+    if (isVideoMode) {
+      wrapper.classList.add('video-mode-active');
+      if (label) label.textContent = '💿 Disc';
+    } else {
+      wrapper.classList.remove('video-mode-active');
+      if (label) label.textContent = '🎬 Video';
+    }
+  }
+
+  function initRadioAudio() {
+    if (!radioAudio) {
+      try {
+        radioAudio = new Audio();
+        radioAudio.preload = 'none';
+        radioAudio.crossOrigin = 'anonymous';
+        radioAudio.addEventListener('play', () => {
+          isPlaying = true;
+          updatePlayPauseUI();
+          enableMobileBackgroundAudio();
+        });
+        radioAudio.addEventListener('pause', () => {
+          isPlaying = false;
+          updatePlayPauseUI();
+        });
+        radioAudio.addEventListener('error', (e) => {
+          console.warn('Radio stream notice, advancing station...', e);
+          currentRadioIndex = (currentRadioIndex + 1) % RADIO_STREAMS.length;
+          radioAudio.src = RADIO_STREAMS[currentRadioIndex].url;
+          if (isPlaying) radioAudio.play().catch(() => {});
+        });
+      } catch(e) {}
+    }
+  }
+
+  function switchToRadio(stationIdx = 0) {
+    playMode = 'radio';
+    currentRadioIndex = stationIdx;
+    initRadioAudio();
+    if (player && typeof player.pauseVideo === 'function') {
+      try { player.pauseVideo(); } catch(e) {}
+    }
+    if (radioAudio) {
+      radioAudio.src = RADIO_STREAMS[currentRadioIndex].url;
+      const volSlider = document.getElementById('volume-slider');
+      radioAudio.volume = isMuted ? 0 : (volSlider ? volSlider.value / 100 : 0.7);
+      radioAudio.play().catch(e => console.log('Radio autoplay notice:', e));
+    }
+
+    document.getElementById('song-title').textContent = RADIO_STREAMS[currentRadioIndex].name;
+    document.getElementById('song-artist').textContent = '24/7 Live Bollywood Radio Stream';
+    document.getElementById('song-movie').textContent = 'Commercial-Free Non-stop Hits';
+    document.getElementById('current-time').textContent = 'LIVE';
+    document.getElementById('total-time').textContent = '24/7';
+    document.getElementById('progress-fill').style.width = '100%';
+
+    const btnYt = document.getElementById('btn-mode-youtube');
+    const btnRad = document.getElementById('btn-mode-radio');
+    if (btnYt) btnYt.classList.remove('active');
+    if (btnRad) btnRad.classList.add('active');
+
+    isPlaying = true;
+    updatePlayPauseUI();
+  }
+
+  function switchToYouTube() {
+    playMode = 'youtube';
+    if (radioAudio) {
+      try { radioAudio.pause(); } catch(e) {}
+    }
+    const btnYt = document.getElementById('btn-mode-youtube');
+    const btnRad = document.getElementById('btn-mode-radio');
+    if (btnRad) btnRad.classList.remove('active');
+    if (btnYt) btnYt.classList.add('active');
+    loadSong(currentSongIndex, isPlaying);
+  }
 
   function loadSong(index, play = false) {
     const song = playlist[index];
@@ -557,6 +699,12 @@ class SongDoublyLinkedList {
 
     updatePlaylistActiveItem();
     updateMediaSession(song);
+    updateWatchLink(song);
+
+    if (playMode === 'radio') {
+      switchToYouTube();
+      return;
+    }
 
     if (player && typeof player.loadVideoById === 'function') {
       if (play) {
@@ -568,14 +716,14 @@ class SongDoublyLinkedList {
         isPlaying = true;
         updatePlayPauseUI();
 
-        // Safety net: if song doesn't start playing within 8s, skip it
+        // Safety net: if song doesn't start playing within 7s, skip to next track
         loadTimeout = setTimeout(() => {
           if (isLoadingTrack && !isSongActive && consecutiveErrors < MAX_ERROR_SKIPS) {
-            console.warn('Song load timed out, skipping...');
+            console.warn('Song load timed out, skipping to next track...');
             consecutiveErrors++;
             playNext(true);
           }
-        }, 8000);
+        }, 7000);
       } else {
         try {
           player.cueVideoById(song.youtubeId);
@@ -588,6 +736,21 @@ class SongDoublyLinkedList {
 
   function togglePlayPause() {
     enableMobileBackgroundAudio();
+    if (playMode === 'radio') {
+      initRadioAudio();
+      if (radioAudio) {
+        if (radioAudio.paused) {
+          radioAudio.play().catch(e => console.log('Radio play notice:', e));
+          isPlaying = true;
+        } else {
+          radioAudio.pause();
+          isPlaying = false;
+        }
+      }
+      updatePlayPauseUI();
+      return;
+    }
+
     if (!player) {
       console.warn('Player not initialized yet');
       return;
@@ -595,15 +758,13 @@ class SongDoublyLinkedList {
     
     try {
       const state = typeof player.getPlayerState === 'function' ? player.getPlayerState() : -1;
-      if (state === YT.PlayerState.PLAYING) {
+      if (state === 1 || (window.YT && window.YT.PlayerState && state === window.YT.PlayerState.PLAYING)) {
         player.pauseVideo();
-      } else if (state === YT.PlayerState.PAUSED || state === 5 /* CUED */) {
+      } else if (state === 2 || state === 5 /* CUED */ || (window.YT && window.YT.PlayerState && state === window.YT.PlayerState.PAUSED)) {
         player.playVideo();
-      } else if (state === YT.PlayerState.BUFFERING) {
-        // Don't interrupt buffering — let it finish
+      } else if (state === 3 /* BUFFERING */) {
         return;
       } else {
-        // UNSTARTED (-1) or unknown state — load the current song
         loadSong(currentSongIndex, true);
       }
     } catch(err) {
@@ -617,17 +778,23 @@ class SongDoublyLinkedList {
     const disc = document.getElementById('player-disc');
     
     if (isPlaying) {
-      playIcon.classList.add('hidden');
-      pauseIcon.classList.remove('hidden');
-      disc.classList.add('spinning');
+      if (playIcon) playIcon.classList.add('hidden');
+      if (pauseIcon) pauseIcon.classList.remove('hidden');
+      if (disc) disc.classList.add('spinning');
     } else {
-      playIcon.classList.remove('hidden');
-      pauseIcon.classList.add('hidden');
-      disc.classList.remove('spinning');
+      if (playIcon) playIcon.classList.remove('hidden');
+      if (pauseIcon) pauseIcon.classList.add('hidden');
+      if (disc) disc.classList.remove('spinning');
     }
   }
 
   function playNext(isErrorSkip = false) {
+    if (playMode === 'radio') {
+      currentRadioIndex = (currentRadioIndex + 1) % RADIO_STREAMS.length;
+      switchToRadio(currentRadioIndex);
+      return;
+    }
+
     if (playlist.length === 0) return;
     
     const now = Date.now();
@@ -650,6 +817,12 @@ class SongDoublyLinkedList {
   }
 
   function playPrev() {
+    if (playMode === 'radio') {
+      currentRadioIndex = (currentRadioIndex - 1 + RADIO_STREAMS.length) % RADIO_STREAMS.length;
+      switchToRadio(currentRadioIndex);
+      return;
+    }
+
     if (playlist.length === 0) return;
 
     const now = Date.now();
@@ -676,9 +849,7 @@ class SongDoublyLinkedList {
     const btn = document.getElementById('btn-shuffle');
     if (isShuffled) {
       btn.classList.add('active');
-      // Create shuffled indices
       shuffledIndices = Array.from({length: playlist.length}, (_, i) => i);
-      // Fisher-Yates shuffle
       for (let i = shuffledIndices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
@@ -699,26 +870,27 @@ class SongDoublyLinkedList {
   }
 
   function toggleMute() {
-    if (!player) return;
     isMuted = !isMuted;
     const volIcon = document.getElementById('icon-volume');
     const muteIcon = document.getElementById('icon-mute');
     
     if (isMuted) {
-      player.mute();
-      volIcon.classList.add('hidden');
-      muteIcon.classList.remove('hidden');
+      if (player && typeof player.mute === 'function') player.mute();
+      if (radioAudio) radioAudio.muted = true;
+      if (volIcon) volIcon.classList.add('hidden');
+      if (muteIcon) muteIcon.classList.remove('hidden');
     } else {
-      player.unMute();
-      volIcon.classList.remove('hidden');
-      muteIcon.classList.add('hidden');
+      if (player && typeof player.unMute === 'function') player.unMute();
+      if (radioAudio) radioAudio.muted = false;
+      if (volIcon) volIcon.classList.remove('hidden');
+      if (muteIcon) muteIcon.classList.add('hidden');
     }
   }
 
   function changeVolume(e) {
-    if (!player) return;
     const vol = e.target.value;
-    player.setVolume(vol);
+    if (player && typeof player.setVolume === 'function') player.setVolume(vol);
+    if (radioAudio) radioAudio.volume = vol / 100;
     if (vol > 0 && isMuted) {
       toggleMute();
     }
@@ -1123,6 +1295,15 @@ class SongDoublyLinkedList {
       case 'p': 
         playPrev(); 
         break;
+      case 's':
+        toggleShuffle();
+        break;
+      case 'r':
+        toggleRepeat();
+        break;
+      case 'v':
+        toggleVideoMode();
+        break;
       case 'h': 
         triggerHorn(); 
         break;
@@ -1134,8 +1315,10 @@ class SongDoublyLinkedList {
         break;
       case 'd': 
         const toggle = document.getElementById('toggle-daynight');
-        toggle.checked = !toggle.checked;
-        toggle.dispatchEvent(new Event('change'));
+        if (toggle) {
+          toggle.checked = !toggle.checked;
+          toggle.dispatchEvent(new Event('change'));
+        }
         break;
       case 'l': 
         togglePlaylistPanel(); 
@@ -1151,6 +1334,14 @@ class SongDoublyLinkedList {
       });
     }
   }
+
+  // Expose Global Player Interface for External Tools / Debugging
+  window.playNext = playNext;
+  window.playPrev = playPrev;
+  window.togglePlayPause = togglePlayPause;
+  window.switchToRadio = switchToRadio;
+  window.switchToYouTube = switchToYouTube;
+  window.toggleVideoMode = toggleVideoMode;
 
   // Start
   document.addEventListener('DOMContentLoaded', init);

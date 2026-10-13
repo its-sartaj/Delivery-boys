@@ -20,8 +20,10 @@
   <meta name="twitter:title" content="Indian Delivery Boys 🛵">
   <meta name="twitter:description" content="The ultimate delivery boy experience — Bollywood hits, bike horns, and chai breaks.">
 
-  <!-- PWA -->
+  <!-- PWA & Favicon -->
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="assets/icon-192.png">
+  <link rel="shortcut icon" href="assets/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
@@ -170,8 +172,28 @@
       <section id="music-player" class="music-player" aria-label="Music Player">
         <div class="player-container">
 
-          <!-- Spinning Disc / Album Art -->
-          <div class="player-disc-wrapper">
+          <!-- Player Top Toolbar (Mode & Watch) -->
+          <div class="player-top-bar">
+            <div class="source-selector">
+              <button id="btn-mode-youtube" class="mode-btn active" title="Play YouTube Bollywood Tracks">
+                <span>📺 Tracks</span>
+              </button>
+              <button id="btn-mode-radio" class="mode-btn" title="24/7 Live Bollywood Radio (Uninterrupted)">
+                <span>📻 Live Radio</span>
+              </button>
+            </div>
+            <div class="player-top-actions">
+              <button id="btn-toggle-video" class="top-action-btn" title="Toggle Disc / Video Screen">
+                <span id="label-toggle-video">🎬 Video</span>
+              </button>
+              <a id="link-youtube-watch" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" class="top-action-btn yt-direct-link" title="Open active song on YouTube">
+                <span>Watch ↗</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Spinning Disc / Album Art / Video Screen -->
+          <div id="player-disc-wrapper" class="player-disc-wrapper">
             <div id="youtube-container" class="youtube-container">
               <div id="youtube-player"></div>
             </div>

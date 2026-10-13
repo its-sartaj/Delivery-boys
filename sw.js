@@ -1,9 +1,9 @@
 // ============================================
-// Indian Delivery Boys — Service Worker v7
-// Fixed: Genuine PNG icons, print styles, offline support
+// Indian Delivery Boys — Service Worker v8
+// Fixed: Dual-mode player, 24/7 radio fallback, favicon 404
 // ============================================
 
-const CACHE_NAME = 'delivery-boys-v7';
+const CACHE_NAME = 'delivery-boys-v8';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   './app.js',
   './songs.js',
   './manifest.json',
+  './favicon.ico',
   './assets/icon-192.png',
   './assets/icon-512.png'
 ];
